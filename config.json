@@ -2,7 +2,8 @@
   "actions": {
     "deploy": false,
     "login": false,
-    "init": true
+    "init": true,
+    "scrape": true
   },
   "env": "dev"
 }

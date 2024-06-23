@@ -7,6 +7,7 @@ import deploy from './discord/deploy-commands/deploy-commands.js';
 import { Store } from './model/store.js';
 import { Dao } from './db/dao.js';
 import { init } from './db/init.js';
+import { scrape } from './scrape/scrape.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -37,3 +38,7 @@ dao.db.serialize(() => {
     console.log(JSON.stringify(row));
   });
 });
+
+if (config.actions.scrape) {
+  scrape();
+}
