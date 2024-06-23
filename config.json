@@ -1,3 +1,8 @@
 {
-  "shouldDeploy": false
+  "actions": {
+    "deploy": false,
+    "login": false,
+    "init": true
+  },
+  "env": "dev"
 }
