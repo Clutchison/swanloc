@@ -1,12 +1,15 @@
 import { TableDef } from "./db/dao.js";
 
-export type Store = {
+export type Event = {
   readonly id?: number | null;
   readonly name: string;
-  readonly wizId: number;
+  readonly storeWizId: number;
+  readonly price: number;
+  readonly date: string;
+  readonly description: string;
 }
 
-export const STORE_DEF: TableDef = {
+export const EVENT_DEF: TableDef = {
   columns: [
     {
       name: 'id',
@@ -23,5 +26,5 @@ export const STORE_DEF: TableDef = {
       unique: true,
     },
   ],
-  name: 'STORE'
+  name: 'EVENT'
 } as const;

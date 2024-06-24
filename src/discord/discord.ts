@@ -1,7 +1,6 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 import commands from './commands/command.js';
 import events from "./events/event.js";
-import config from '../../config.json' assert {type: 'json'}
 import secrets from '../../secret.json' assert {type: 'json'}
 
 export const discord = () => {
@@ -21,5 +20,5 @@ export const discord = () => {
     else client.on(event.name, (...args) => event.execute(...args));
   });
 
-  if (config.actions.login) client.login(secrets.token);
+  client.login(secrets.token);
 }
