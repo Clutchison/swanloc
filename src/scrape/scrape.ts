@@ -10,15 +10,11 @@ export const scrape = async () => {
   const data = await page.evaluate(() => {
     const res: string[] = [];
     const items = document.querySelectorAll('h3');
-    items.forEach(i => {
-      console.log(JSON.stringify(i));
-      res.push(i.textContent?.trim() || '');
-    })
+    items.forEach(i => res.push(i.textContent?.trim() || ''))
     return res;
   });
 
 
   console.log(data);
   await browser.close();
-
 }
