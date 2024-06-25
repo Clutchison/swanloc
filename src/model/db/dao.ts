@@ -4,8 +4,8 @@ import sqlite3, { Database } from 'sqlite3';
 export class Dao {
 
   private static instanceMap: { [key in string]: Dao } = {};
-
   public static db: Database = new (config.env === 'dev' ? sqlite3.verbose() : sqlite3).Database(config.db);
+
   public def: TableDef;
 
   private constructor(def: TableDef) {
@@ -25,9 +25,8 @@ export class Dao {
   }
 
   public insert(obj: any) {
-    console.log('In const');
-    const values = Dao.values(obj);
-    const s = `INSERT INTO ${this.def.name} VALUES (${values.map(_ => '?').join(', ')})`;
+    const [keys, values] = [Object.keys(obj), Object.values(obj)];
+    const s = `INSERT INTO ${this.def.name} (${keys.join(', ')}) VALUES (${values.map(_ => '?').join(', ')})`;
     console.log('[INSERT] ' + s);
     Dao.db.prepare(s).run(values);
   }
@@ -40,20 +39,9 @@ export class Dao {
   }
 
   private static formatColumnDef(c: Column) {
-    const s = c.name + ' ' + c.type +
+    return c.name + ' ' + c.type +
       (c.primary ? ' PRIMARY KEY autoincrement' : '') +
       (c.unique ? ' unique' : '');
-    return s;
-  }
-
-  private static values(obj: any) {
-    const objWithId = {
-      id: null,
-      ...obj
-    }
-    return Object.keys(objWithId)
-      .filter(k => k !== 'def')
-      .map(k => obj[k]);
   }
 }
 

@@ -1,8 +1,10 @@
 {
   "actions": {
+    "discord": {
     "deploy": false,
     "login": false,
-    "init": true,
+    },
+    "dbInit": true,
     "scrape": false
   },
   "env": "dev",
