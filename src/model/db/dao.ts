@@ -1,5 +1,6 @@
 import config from '../../../config.json' assert {type: 'json'};
-import sqlite3, { Database } from 'sqlite3';
+import sqlite3, { Database, RunResult } from 'sqlite3';
+import { Tag } from '../tag.js';
 
 export class Dao {
 
@@ -13,7 +14,7 @@ export class Dao {
     this.createTable();
   }
 
-  public static get(def: TableDef): Dao {
+  public static instance(def: TableDef): Dao {
     const existingDao: Dao | undefined = Dao.instanceMap[def.name];
     if (!existingDao) {
       const newDao = new Dao(def);
@@ -24,11 +25,17 @@ export class Dao {
     }
   }
 
-  public insert(obj: any) {
+  public insert<T extends {}>(obj: T): Promise<T> {
     const [keys, values] = [Object.keys(obj), Object.values(obj)];
     const s = `INSERT INTO ${this.def.name} (${keys.join(', ')}) VALUES (${values.map(_ => '?').join(', ')})`;
     console.log('[INSERT] ' + s);
-    Dao.db.prepare(s).run(values);
+    return new Promise<T>((resolve, reject) => {
+      const dao = this;
+      Dao.db.run(s, values, function(this: RunResult, err: Error) {
+        if (!!err) reject(err);
+        else resolve(dao.getById<T>(this.lastID));
+      });
+    })
   }
 
   public createTable() {
@@ -36,6 +43,28 @@ export class Dao {
     const s = `CREATE TABLE IF NOT EXISTS ${this.def.name} (` + colString + ')';
     console.log('[CreateTable] ' + s);
     Dao.db.run(s);
+  }
+
+  getById<T>(id: number): Promise<T> {
+    const s = `SELECT * FROM ${this.def.name} where id = ${id}`;
+    console.log('[GET BY ID] ' + s);
+    return new Promise((resolve, reject) => {
+      Dao.db.get(s, (err: Error, row: T) => {
+        if (!!err) reject(err);
+        else resolve(row);
+      })
+    });
+  }
+
+  getAll<T>(): Promise<T[]> {
+    const s = `SELECT * FROM ${this.def.name}`
+    console.log('[GET ALL] ' + s);
+    return new Promise((resolve, reject) => {
+      Dao.db.all(s, (err: Error, res: any) => {
+        if (!!err) reject(err);
+        else resolve(res as T[])
+      });
+    });
   }
 
   private static formatColumnDef(c: Column) {

@@ -5,7 +5,7 @@ export type Event = {
   readonly name: string;
   readonly storeWizId: number;
   readonly price: number;
-  readonly date: number;
+  readonly date: string;
   readonly description: string;
   readonly isPosted?: number;
 }
@@ -31,7 +31,7 @@ export const EVENT_DEF: TableDef = {
     },
     {
       name: 'date',
-      type: 'INTEGER',
+      type: 'TEXT',
     },
     {
       name: 'description',

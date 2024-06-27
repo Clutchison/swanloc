@@ -23,7 +23,8 @@ export const TAG_DEF: TableDef = {
 
 export type EventTag = {
   readonly id?: number | null;
-  readonly name: string;
+  readonly tagId: number;
+  readonly eventId: number;
 }
 
 export const EVENT_TAG_DEF: TableDef = {
