@@ -28,8 +28,8 @@ export class Dao {
   public insert<T extends {}>(obj: T): Promise<T> {
     const [keys, values] = [Object.keys(obj), Object.values(obj)];
     console.log(`VALUES - ${JSON.stringify(values)}`)
-    const s = `INSERT INTO ${this.def.name} (${keys.join(', ')}) VALUES (${values.map(_ => '?').join(', ')});`;
-    console.log('[INSERT] ' + Dao.populate(values, s));
+    const s = `INSERT INTO ${this.def.name} (${keys.map(k => `"${k}"`).join(', ')}) VALUES (${values.map(_ => '?').join(', ')});`;
+    // console.log('[INSERT] ' + Dao.populate(values, JSON.stringify(s)));
     return new Promise<T>((resolve, reject) => {
       const dao = this;
       Dao.db.prepare(s).run(values, function(this: RunResult, err: Error) {
