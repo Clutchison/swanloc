@@ -27,15 +27,20 @@ export class Dao {
 
   public insert<T extends {}>(obj: T): Promise<T> {
     const [keys, values] = [Object.keys(obj), Object.values(obj)];
-    const s = `INSERT INTO ${this.def.name} (${keys.join(', ')}) VALUES (${values.map(_ => '?').join(', ')})`;
-    console.log('[INSERT] ' + s);
+    console.log(`VALUES - ${JSON.stringify(values)}`)
+    const s = `INSERT INTO ${this.def.name} (${keys.join(', ')}) VALUES (${values.map(_ => '?').join(', ')});`;
+    console.log('[INSERT] ' + Dao.populate(values, s));
     return new Promise<T>((resolve, reject) => {
       const dao = this;
-      Dao.db.run(s, values, function(this: RunResult, err: Error) {
+      Dao.db.prepare(s).run(values, function(this: RunResult, err: Error) {
         if (!!err) reject(err);
         else resolve(dao.getById<T>(this.lastID));
       });
     })
+  }
+
+  private static populate(vals: any[], s: string): string {
+    return vals.length === 0 ? s : Dao.populate(vals, s.replace('?', vals.shift()));
   }
 
   public createTable() {
@@ -60,7 +65,7 @@ export class Dao {
     const s = `SELECT * FROM ${this.def.name}`
     console.log('[GET ALL] ' + s);
     return new Promise((resolve, reject) => {
-      Dao.db.all(s, (err: Error, res: any) => {
+      Dao.db.all(s, function(err: Error, res: any) {
         if (!!err) reject(err);
         else resolve(res as T[])
       });

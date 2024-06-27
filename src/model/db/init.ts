@@ -6,8 +6,9 @@ import { Dao, TableDef } from "./dao.js";
 export async function initTables() {
   Dao.db.serialize(() => {
     initTable<Store>(STORE_DEF, STORES);
-    initTable<Tag>(TAG_DEF, TAGS);
-    initTable<Event>(EVENT_DEF, EVENTS);
+    // initTable<Tag>(TAG_DEF, TAGS);
+    // initTable<Event>(EVENT_DEF, EVENTS);
+    // Dao.db.run('INSERT INTO EVENT (name) VALUES ("test")');
   });
 }
 

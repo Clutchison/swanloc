@@ -19,13 +19,19 @@ export async function scrapeAndSave() {
     const event = pair[0];
     const tags = pair[1];
 
-    // eventDao.insert<Event>(event);
-    tags.forEach(t => {
-      // eventTagDao.insert<EventTag>({
-      //     tagId: tagMap[t.name] || 0,
-      //     eventId: 
-      // })
-    })
+    eventDao.insert<Event>(event).then(savedEvent => {
+      tags.forEach(t => {
+        eventTagDao.insert<EventTag>({
+          tagId: tagMap[t.name] || 0,
+          eventId: savedEvent.id || 0,
+        }).then(savedET => {
+          console.log(`Saved ET: ${JSON.stringify(savedET)}`);
+        })
+      })
+    }).catch(err => {
+      console.log(`Error saving object: ${JSON.stringify(event)}`);
+      console.log(err);
+    });
   })
 
 
@@ -41,7 +47,7 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
   if (!!config.useDummyScrape) {
     return dummyEvents;
   } else {
-    const data: [Event, Tag[]][] = await page.evaluate(() => {
+    const data: [Event, Tag[]][] = await page.evaluate(wizId => {
       const res: [Event, Tag[]][] = [];
       document.querySelectorAll('.store-info')
         .forEach(item => {
@@ -75,7 +81,6 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
             return `2024-${months.findIndex(m => m === month) + 1}-${date} ${parseTime(time)}`;
           }
 
-
           const parsePrice = (s: string): number => {
             const split = s.split('.');
             const dollars = split[0]?.substring(1) || 0;
@@ -86,9 +91,10 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
           const textFrom = (e: Element | null) => {
             return e?.textContent?.trim() || '';
           }
+
           res.push([{
             name: textFrom(item.querySelector('.event-name')),
-            storeWizId: 13642,
+            storeWizId: wizId,
             price: parsePrice(textFrom(item.querySelector('.event-fee'))),
             date: parseDate(textFrom(item.querySelector('.event-time')),
               textFrom(item.querySelector('.month')),
@@ -100,7 +106,7 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
           ]);
         });
       return res;
-    });
+    }, wizId);
 
 
     console.log(JSON.stringify(data.filter(d => !d[1].find(t => t.name.includes('Commander'))), null, 4));
