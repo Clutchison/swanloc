@@ -3,22 +3,33 @@ import commands from './commands/command.js';
 import events from "./events/event.js";
 import secrets from '../../secret.json' assert {type: 'json'}
 
-export const discord = () => {
-  const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+export class MyDiscord {
+  public readonly client;
+  private static _instance: MyDiscord;
 
-  client.commands = new Collection();
-  commands.forEach(command => {
-    if (!!command.data && !!command.execute) {
-      client.commands.set(command.data.name, command);
-    } else {
-      console.log(`[Warning] The command ${command.name} is missing a required "data" or "execute" property.`);
-    }
-  });
+  private constructor() {
+    this.client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildScheduledEvents] });
+    this.client.commands = new Collection();
+    commands.forEach(command => {
+      if (!!command.data && !!command.execute) {
+        this.client.commands.set(command.data.name, command);
+      } else {
+        console.log(`[Warning] The command ${command.name} is missing a required "data" or "execute" property.`);
+      }
+    });
 
-  events.forEach(event => {
-    if (!!event.once) client.once(event.name, (...args) => event.execute(...args));
-    else client.on(event.name, (...args) => event.execute(...args));
-  });
+    events.forEach(event => {
+      if (!!event.once) this.client.once(event.name, (...args) => event.execute(...args));
+      else this.client.on(event.name, (...args) => event.execute(...args));
+    });
+  }
 
-  client.login(secrets.token);
+  public login() {
+    this.client.login(secrets.token);
+  }
+
+  public static instance(): MyDiscord {
+    if (!MyDiscord._instance) MyDiscord._instance = new MyDiscord();
+    return MyDiscord._instance;
+  }
 }

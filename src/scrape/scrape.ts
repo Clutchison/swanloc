@@ -7,7 +7,6 @@ import dummy from '../../testEvents.json' assert {type: 'json'}
 import { Dao } from '../model/db/dao.js';
 
 export async function scrapeAndSave() {
-  const objs: [Event, Tag[]][] = await scrape(13642);
   const eventDao = Dao.instance(EVENT_DEF);
   const eventTagDao = Dao.instance(EVENT_TAG_DEF);
 
@@ -15,26 +14,37 @@ export async function scrapeAndSave() {
   const tagMap: { [name in string]: number } = {};
   allTags.forEach(t => tagMap[t.name || ''] = t.id || 0);
 
-  objs.forEach(pair => {
-    const event = pair[0];
-    const tags = pair[1];
+  const objs: [Event, Tag[]][] = await scrape(13642);
+  return new Promise<void>((resolve, reject) => {
+    objs.forEach(pair => {
+      const event = pair[0];
+      const tags = pair[1];
 
-    eventDao.insert<Event>(event).then(savedEvent => {
-      tags.forEach(t => {
-        eventTagDao.insert<EventTag>({
-          tagId: tagMap[t.name] || 0,
-          eventId: savedEvent.id || 0,
-        }).then(savedET => {
-          console.log(`Saved ET: ${JSON.stringify(savedET)}`);
-        })
-      })
-    }).catch(err => {
-      console.log(`Error saving object: ${JSON.stringify(event)}`);
-      console.log(err);
+      eventDao.getBy<Event>(event, 'name', 'date', 'storeWizId')
+        .then(existingEvent => {
+          console.log(`Event exists: ${JSON.stringify(existingEvent)}`);
+        }).catch(_ => {
+          console.log('Event does not exist. Saving...')
+          eventDao.insert<Event>(event)
+            .then(savedEvent => {
+              tags.forEach(t => {
+                eventTagDao.insert<EventTag>({
+                  tagId: tagMap[t.name] || 0,
+                  eventId: savedEvent.id || 0,
+                }).then(savedET => {
+                  console.log(`Saved ET: ${JSON.stringify(savedET)}`);
+                })
+              })
+            })
+            .catch(err => {
+              console.log(`Error saving object: ${JSON.stringify(event)}`);
+              console.log(err);
+              reject(err);
+            });
+        });
     });
-  })
-
-
+    resolve();
+  });
 }
 
 export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
@@ -45,7 +55,7 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
   await page.goto(`https://locator.wizards.com/store/${wizId}`, { waitUntil: 'networkidle2' });
 
   if (!!config.useDummyScrape) {
-    return dummyEvents;
+    return dummyEvents.filter(de => !de[1].map(t => t.name).includes('Commander'));
   } else {
     const data: [Event, Tag[]][] = await page.evaluate(wizId => {
       const res: [Event, Tag[]][] = [];
@@ -92,7 +102,8 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
             return e?.textContent?.trim() || '';
           }
 
-          res.push([{
+          const tags = Array.from(item.querySelectorAll('.tags')).map(e => ({ name: textFrom(e) }));
+          if (!tags.map(t => t.name).includes('Commander')) res.push([{
             name: textFrom(item.querySelector('.event-name')),
             storeWizId: wizId,
             price: parsePrice(textFrom(item.querySelector('.event-fee'))),
@@ -101,8 +112,7 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
               textFrom(item.querySelector('.dayOfMonth'))),
             description: textFrom(item.querySelector('.e-description')),
             isPosted: 0,
-          },
-          Array.from(item.querySelectorAll('.tags')).map(e => ({ name: textFrom(e) }))
+          }, tags
           ]);
         });
       return res;
@@ -117,14 +127,3 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
     return data;
   }
 }
-
-const selectors: string[] = [
-  '.event-name',
-  '.event-fee',
-  '.event-time',
-  '.e-description',
-  '.tags',
-  '.dayOfWeek',
-  '.month',
-  '.dayOfMonth',
-] as const;

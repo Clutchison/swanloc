@@ -1,13 +1,13 @@
 {
   "actions": {
     "discord": {
-      "deploy": false,
-      "login": false
+      "deploy": true,
+      "login": true
     },
-    "dbInit": true,
+    "dbInit": false,
     "scrape": false
   },
   "env": "dev",
-  "db": ":memory:",
+  "db": "test.db",
   "useDummyScrape": true
 }

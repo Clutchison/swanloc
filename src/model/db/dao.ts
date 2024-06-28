@@ -11,7 +11,6 @@ export class Dao {
 
   private constructor(def: TableDef) {
     this.def = def;
-    this.createTable();
   }
 
   public static instance(def: TableDef): Dao {
@@ -27,14 +26,17 @@ export class Dao {
 
   public insert<T extends {}>(obj: T): Promise<T> {
     const [keys, values] = [Object.keys(obj), Object.values(obj)];
-    console.log(`VALUES - ${JSON.stringify(values)}`)
-    const s = `INSERT INTO ${this.def.name} (${keys.map(k => `"${k}"`).join(', ')}) VALUES (${values.map(_ => '?').join(', ')});`;
-    // console.log('[INSERT] ' + Dao.populate(values, JSON.stringify(s)));
+    const s = `INSERT INTO ${this.def.name} (${keys.map(k => `"${k}"`).join(', ')}) VALUES (${values.map(_ => '?').join(', ')})`;
+    console.log('[INSERT] ' + Dao.populate([...values], Object.assign(s, '')));
     return new Promise<T>((resolve, reject) => {
       const dao = this;
       Dao.db.prepare(s).run(values, function(this: RunResult, err: Error) {
-        if (!!err) reject(err);
-        else resolve(dao.getById<T>(this.lastID));
+        console.log(err)
+        if (!!err) {
+          reject(err);
+        } else {
+          resolve(dao.getById<T>(this.lastID));
+        }
       });
     })
   }
@@ -45,9 +47,24 @@ export class Dao {
 
   public createTable() {
     const colString = this.def.columns.map(Dao.formatColumnDef).join(', ');
-    const s = `CREATE TABLE IF NOT EXISTS ${this.def.name} (` + colString + ')';
+    const s = `CREATE TABLE IF NOT EXISTS ${this.def.name} (` + colString
+      + (!!this.def.multiUnique ? `, UNIQUE(${this.def.multiUnique.join(', ')}))` : ')');
     console.log('[CreateTable] ' + s);
     Dao.db.run(s);
+  }
+
+  getBy<T extends {}>(t: T, ...cols: string[]) {
+    const params = cols.map(c => t[c as keyof T]);
+    console.log('Params: ' + JSON.stringify(params));
+    const s = `SELECT * FROM ${this.def.name} where ${cols.map(col => col + '=?').join(' and ')}`;
+    console.log('[GET BY] ' + s);
+    return new Promise((resolve, reject) => {
+      Dao.db.get(s, params, (err: Error, row: T) => {
+        if (!!err) reject(err);
+        else if (!row) reject('Row not found.')
+        else resolve(row);
+      })
+    });
   }
 
   getById<T>(id: number): Promise<T> {
@@ -82,6 +99,7 @@ export class Dao {
 export type TableDef = {
   columns: Columns;
   name: string;
+  multiUnique?: string[];
 }
 
 export type Column = {
