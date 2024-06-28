@@ -1,25 +1,45 @@
 import fs from 'fs';
 import config from '../../config.json' assert {type: 'json'}
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import { Event, EVENT_DEF } from '../model/event.js';
 import { EVENT_TAG_DEF, EventTag, Tag, TAG_DEF } from '../model/tag.js';
 import dummy from '../../testEvents.json' assert {type: 'json'}
 import { Dao } from '../model/db/dao.js';
+import { Store, STORE_DEF } from '../model/store.js';
+
+type ScrapeResult = [Event, Tag[]];
+type TagMap = { [name in string]: number };
 
 export async function scrapeAndSave() {
+  const stores = await Dao.instance(STORE_DEF).getAll<Store>();
+
+  const tags = await Dao.instance(TAG_DEF).getAll<Tag>();
+  const tagMap: TagMap = {};
+  tags.forEach(t => tagMap[t.name || ''] = t.id || 0);
+
+  const browser = await puppeteer.launch();
+  await delay(1000);
+
+  for (const store of stores) {
+    const scraped = await scrape(store.wizId, browser);
+    console.log('ScrapeCount: ' + scraped.length);
+    await save(scraped, tagMap);
+  }
+
+  await browser.close();
+}
+
+async function delay(time: number) {
+  return new Promise(resolve => setTimeout(resolve, time));
+}
+
+async function save(results: ScrapeResult[], tagMap: TagMap): Promise<void> {
   const eventDao = Dao.instance(EVENT_DEF);
   const eventTagDao = Dao.instance(EVENT_TAG_DEF);
-
-  const allTags = await Dao.instance(TAG_DEF).getAll<Tag>();
-  const tagMap: { [name in string]: number } = {};
-  allTags.forEach(t => tagMap[t.name || ''] = t.id || 0);
-
-  const objs: [Event, Tag[]][] = await scrape(13642);
   return new Promise<void>((resolve, reject) => {
-    objs.forEach(pair => {
+    results.forEach(pair => {
       const event = pair[0];
       const tags = pair[1];
-
       eventDao.getBy<Event>(event, 'name', 'date', 'storeWizId')
         .then(existingEvent => {
           console.log(`Event exists: ${JSON.stringify(existingEvent)}`);
@@ -47,18 +67,19 @@ export async function scrapeAndSave() {
   });
 }
 
-export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
-
-  const dummyEvents: [Event, Tag[]][] = (dummy as [Event, Tag[]][]) || [];
-  const browser = await puppeteer.launch();
+export async function scrape(wizId: number, browser: Browser): Promise<ScrapeResult[]> {
+  console.log('SCRAPING FOR STORE ' + wizId);
+  const dummyEvents: ScrapeResult[] = (dummy as ScrapeResult[]) || [];
   const page = await browser.newPage();
+  await delay(3000);
   await page.goto(`https://locator.wizards.com/store/${wizId}`, { waitUntil: 'networkidle2' });
+  await delay(3000);
 
   if (!!config.useDummyScrape) {
     return dummyEvents.filter(de => !de[1].map(t => t.name).includes('Commander'));
   } else {
-    const data: [Event, Tag[]][] = await page.evaluate(wizId => {
-      const res: [Event, Tag[]][] = [];
+    const data: ScrapeResult[] = await page.evaluate(wizId => {
+      const res: ScrapeResult[] = [];
       document.querySelectorAll('.store-info')
         .forEach(item => {
           const parseTime = (t: string): string => {
@@ -103,8 +124,9 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
           }
 
           const tags = Array.from(item.querySelectorAll('.tags')).map(e => ({ name: textFrom(e) }));
-          if (!tags.map(t => t.name).includes('Commander')) res.push([{
-            name: textFrom(item.querySelector('.event-name')),
+          const name = textFrom(item.querySelector('.event-name'));
+          if (!tags.map(t => t.name).includes('Commander') && !!name) res.push([{
+            name: name,
             storeWizId: wizId,
             price: parsePrice(textFrom(item.querySelector('.event-fee'))),
             date: parseDate(textFrom(item.querySelector('.event-time')),
@@ -117,13 +139,13 @@ export async function scrape(wizId: number): Promise<[Event, Tag[]][]> {
         });
       return res;
     }, wizId);
+    await delay(3000);
 
 
-    console.log(JSON.stringify(data.filter(d => !d[1].find(t => t.name.includes('Commander'))), null, 4));
-    fs.writeFile('testEvents.json', JSON.stringify(data, null, 4), (err) => {
-      console.log(err);
-    })
-    await browser.close();
+    // console.log(JSON.stringify(data.filter(d => !d[1].find(t => t.name.includes('Commander'))), null, 4));
+    // fs.writeFile('testEvents.json', JSON.stringify(data, null, 4), (err) => {
+    //   console.log(err);
+    // })
     return data;
   }
 }

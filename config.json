@@ -9,5 +9,5 @@
   },
   "env": "dev",
   "db": "test.db",
-  "useDummyScrape": true
+  "useDummyScrape": false
 }
