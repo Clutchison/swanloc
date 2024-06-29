@@ -8,10 +8,11 @@
     "build": "tsc",
     "once": "pnpm run build && pnpm run start:dev",
     "start:dev": "node --env-file=.env dist/src/index.js",
-    "start": "node dist/src/index.js",
+    "start": "pnpm run build && node dist/src/index.js",
     "dev:tsc": "tsc --watch --preserveWatchOutput",
     "dev:node": "node --enable-source-maps --watch dist/src/index.js",
-    "dev": "pnpm run \"/dev:/\""
+    "dev": "pnpm run \"/dev:/\"",
+    "postinstall": "pnpm run build"
   },
   "author": "",
   "license": "ISC",
