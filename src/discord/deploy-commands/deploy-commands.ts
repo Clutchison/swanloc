@@ -8,8 +8,6 @@ const deploy = () => {
     builtCommands.push(command.data.toJSON());
   });
 
-  console.log(JSON.stringify(commands));
-
   const rest = new REST().setToken(process.env.TOKEN || '');
 
   const run = async () => {
