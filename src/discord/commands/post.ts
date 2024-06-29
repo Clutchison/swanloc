@@ -4,8 +4,10 @@ import { Dao } from "../../model/db/dao.js";
 import { Event, EventDao } from "../../model/event.js";
 import { Store, STORE_DEF } from "../../model/store.js";
 import { EventTag, Tag, TAG_DEF } from "../../model/tag.js";
+import { swanCheck } from "./utility/util.js";
 
 const fourHours = 14400000 as const;
+type StoreMap = { [key in number]: Store };
 
 const post: MyCommand = {
   data: new SlashCommandBuilder()
@@ -13,21 +15,22 @@ const post: MyCommand = {
     .setDescription('Post New Events from Wizards Event Locator'),
   name: 'post',
   async execute(interaction: CommandInteraction) {
+    if (!swanCheck(interaction)) return;
     await interaction.reply({ content: 'Creating Events...', ephemeral: true })
-    const eventsToPost = await getEventsToPost();
     const stores = await Dao.instance(STORE_DEF).getAll<Store>();
-    const storeMap: { [key in number]: Store } = {};
+    const storeMap: StoreMap = {};
     stores.forEach(s => storeMap[s.wizId] = s);
+    const eventsToPost = await getEventsToPost(storeMap);
     console.log(`Found ${eventsToPost.length} to post!`)
     let errOccured = false;
     for (const event of eventsToPost) {
       console.log('Creating event: ' + event.name);
       const store = storeMap[event.storeWizId];
       const etc: GuildScheduledEventCreateOptions = {
-        description: `${formatPrice(event.price)} \n\n ${event.description}`,
+        description: `${store?.name} -- ${formatPrice(event.price)} \n\n ${event.description}`,
         entityMetadata: { location: store?.location || '' },
         entityType: 3,
-        name: `${store?.name} -- ${event.name}`,
+        name: `${event.name}`,
         privacyLevel: 2,
         scheduledStartTime: Date.parse(event.date),
         scheduledEndTime: Date.parse(event.date) + fourHours
@@ -50,12 +53,12 @@ const post: MyCommand = {
 
 export default post;
 
-async function getEventsToPost(): Promise<Event[]> {
+async function getEventsToPost(storeMap: StoreMap): Promise<Event[]> {
   return new Promise((resolve, reject) => {
     Dao.db.all(`SELECT * from EVENT WHERE isPosted = 0`, function(err: Error, allEvents: Event[]) {
       if (!!err) reject(err);
       else {
-        filterEventsByTag(allEvents).then(filteredEvents => {
+        filterEventsByTag(allEvents, storeMap).then(filteredEvents => {
           resolve(filteredEvents.filter(e => isWithinTwoWeeks(e.date)))
         }).catch(reject);
       }
@@ -63,17 +66,22 @@ async function getEventsToPost(): Promise<Event[]> {
   });
 }
 
-async function filterEventsByTag(allEvents: Event[]): Promise<Event[]> {
+async function filterEventsByTag(allEvents: Event[], storeMap: StoreMap): Promise<Event[]> {
   const tags = await Dao.instance(TAG_DEF).getAll<Tag>();
   const tagMap: { [key in number]: Tag } = {};
   const fnm = tags.find(t => t.name === 'Friday Night Magic');
   tags.forEach(t => tagMap[t.id || 0] = t)
   const filteredEvents = new Set<Event>();
   for (const event of allEvents) {
+    const store = storeMap[event.storeWizId || 0];
     const ets = await getAllETsforEvent(event);
-    const foundTags = ets.map(et => tagMap[et.tagId]).filter(t => t?.postable);
+    const foundTags = ets.map(et => tagMap[et.tagId]);
     console.log(`Found tags: ` + JSON.stringify(foundTags));
-    if (foundTags.length > 0 && !foundTags.includes(fnm)) {
+    const isDCGPrerelease = store?.name?.toLowerCase()?.includes('dcg lomas') &&
+      foundTags.filter(t => t?.name?.toLowerCase()?.includes('prerelease'))
+
+    if ((foundTags.filter(t => t?.postable).length > 0 || isDCGPrerelease)
+      && !foundTags.includes(fnm)) {
       console.log('Adding event: ' + JSON.stringify(event));
       filteredEvents.add(event);
     }
