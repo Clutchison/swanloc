@@ -1,11 +1,9 @@
-import config from '../../../config.json' assert {type: 'json'};
 import sqlite3, { Database, RunResult } from 'sqlite3';
-import { Tag } from '../tag.js';
 
 export class Dao {
 
   private static instanceMap: { [key in string]: Dao } = {};
-  public static db: Database = new (config.env === 'dev' ? sqlite3.verbose() : sqlite3).Database(config.db);
+  public static db: Database = new (process.env.ENV === 'dev' ? sqlite3.verbose() : sqlite3).Database(process.env.DB || '');
 
   public def: TableDef;
 

@@ -1,5 +1,4 @@
 import { REST, RESTPostAPIChatInputApplicationCommandsJSONBody, Routes } from 'discord.js';
-import secrets from '../../../secret.json' assert {type: 'json'};
 import commands from '../commands/command.js';
 
 const deploy = () => {
@@ -11,7 +10,7 @@ const deploy = () => {
 
   console.log(JSON.stringify(commands));
 
-  const rest = new REST().setToken(secrets.token);
+  const rest = new REST().setToken(process.env.TOKEN || '');
 
   const run = async () => {
     try {
@@ -20,7 +19,7 @@ const deploy = () => {
       console.log(JSON.stringify(builtCommands));
 
       const data: any = await rest.put(
-        Routes.applicationGuildCommands(secrets.clientId, secrets.guildId),
+        Routes.applicationGuildCommands(process.env.CLIENT_ID || '', process.env.GUILD_ID || ''),
         { body: builtCommands },
       );
 

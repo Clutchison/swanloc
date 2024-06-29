@@ -1,7 +1,7 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 import commands from './commands/command.js';
 import events from "./events/event.js";
-import secrets from '../../secret.json' assert {type: 'json'}
+import deploy from "./deploy-commands/deploy-commands.js";
 
 export class MyDiscord {
   public readonly client;
@@ -25,7 +25,8 @@ export class MyDiscord {
   }
 
   public login() {
-    this.client.login(secrets.token);
+    deploy();
+    this.client.login(process.env.TOKEN);
   }
 
   public static instance(): MyDiscord {
