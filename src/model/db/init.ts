@@ -1,21 +1,19 @@
-import { EVENT_DEF, Event } from "../event.js";
+import { EVENT_DEF } from "../event.js";
 import { Store, STORE_DEF } from "../store.js";
-import { EVENT_TAG_DEF, EventTag, Tag, TAG_DEF } from "../tag.js";
+import { EVENT_TAG_DEF, Tag, TAG_DEF } from "../tag.js";
 import { Dao, TableDef } from "./dao.js";
 
 export async function initTables(): Promise<void> {
-  return new Promise((resolve, _) => {
-    resolve(Dao.db.serialize(() => {
-      Dao.instance(STORE_DEF).createTable();
-      Dao.instance(EVENT_DEF).createTable();
-      Dao.instance(TAG_DEF).createTable();
-      Dao.instance(EVENT_TAG_DEF).createTable();
-      initTable<Store>(STORE_DEF, STORES);
-      initTable<Tag>(TAG_DEF, TAGS);
-      initTable<Event>(EVENT_DEF, EVENTS);
-      initTable<EventTag>(EVENT_TAG_DEF, []);
-    }));
-  });
+  await Promise.all([
+    Dao.instance(STORE_DEF).createTable(),
+    Dao.instance(EVENT_DEF).createTable(),
+    Dao.instance(TAG_DEF).createTable(),
+    Dao.instance(EVENT_TAG_DEF).createTable(),
+  ]);
+  await Promise.all([
+    initTable<Store>(STORE_DEF, STORES),
+    initTable<Tag>(TAG_DEF, TAGS),
+  ]);
 }
 
 async function initTable<T extends {}>(ref: TableDef, vals: T[]) {
@@ -124,5 +122,3 @@ const TAGS: Tag[] = [
   { name: 'Modern' },
   { name: 'Commander' },
 ] as const;
-
-const EVENTS: Event[] = [] as const;
