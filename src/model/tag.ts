@@ -1,25 +1,34 @@
-import { TableDef } from "./db/dao.js";
+import { Dao } from "./db/dao.js";
+import { TableDef } from "./db/table-def.js";
 
 export type Tag = {
   readonly id?: number | null;
   readonly name: string;
-  postable?: number;
+  postAllowance?: PostAllowance;
 }
+
+export const POST_ALLOWANCES = [
+  'whitelisted',
+  'blacklisted',
+  'none',
+] as const;
+export type PostAllowance = typeof POST_ALLOWANCES[number];
 
 export const TAG_DEF: TableDef = {
   columns: [
     {
       name: 'id',
-      type: 'INTEGER',
+      type: 'smallserial',
       primary: true,
     },
     {
       name: 'name',
-      type: 'TEXT',
+      type: 'varchar',
     },
     {
-      name: 'postable',
-      type: 'INTEGER',
+      name: 'postAllowance',
+      type: 'postallowance',
+      default: 'none'
     },
   ],
   name: 'TAG'
@@ -36,16 +45,16 @@ export const EVENT_TAG_DEF: TableDef = {
   columns: [
     {
       name: 'id',
-      type: 'INTEGER',
+      type: 'serial',
       primary: true,
     },
     {
       name: 'tagId',
-      type: 'INTEGER',
+      type: 'integer',
     },
     {
       name: 'eventId',
-      type: 'INTEGER',
+      type: 'integer',
     },
   ],
   multiUnique: [
@@ -54,3 +63,15 @@ export const EVENT_TAG_DEF: TableDef = {
   ],
   name: 'EVENT_TAG'
 } as const;
+
+export class TagDao {
+  static async getFNM() {
+    const res = await Dao.query(
+      "SELECT * FROM TAG WHERE NAME = 'Friday Night Magic'",
+      '[GET FNM]'
+    );
+    return res.rows[0];
+  }
+}
+
+

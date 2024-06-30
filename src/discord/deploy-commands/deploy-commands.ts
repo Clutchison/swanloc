@@ -14,14 +14,14 @@ const deploy = () => {
     try {
       console.log(`Started refreshing ${builtCommands.length} application (/) commands.`);
 
-      console.log(JSON.stringify(builtCommands));
+      console.debug(JSON.stringify(builtCommands));
 
       const data: any = await rest.put(
         Routes.applicationGuildCommands(process.env.CLIENT_ID || '', process.env.GUILD_ID || ''),
         { body: builtCommands },
       );
 
-      console.log(JSON.stringify(data));
+      console.debug(JSON.stringify(data));
 
       console.log(`Successfully reloaded ${data?.length} application (/) commands.`);
     } catch (error) {

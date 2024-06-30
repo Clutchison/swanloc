@@ -1,4 +1,4 @@
-import { TableDef } from "./db/dao.js";
+import { TableDef } from "./db/table-def.js";
 
 export type Store = {
   readonly id?: number | null;
@@ -6,36 +6,37 @@ export type Store = {
   readonly wizId: number;
   readonly location?: string;
   readonly phone?: string;
-  readonly isPremium?: number;
+  readonly isPremium?: boolean;
 }
 
 export const STORE_DEF: TableDef = {
   columns: [
     {
       name: 'id',
-      type: 'INTEGER',
+      type: 'smallserial',
       primary: true,
     },
     {
       name: 'name',
-      type: 'TEXT',
+      type: 'varchar',
     },
     {
       name: 'wizId',
-      type: 'INTEGER',
+      type: 'integer',
       unique: true,
     },
     {
       name: 'location',
-      type: 'TEXT',
+      type: 'varchar',
     },
     {
       name: 'phone',
-      type: 'TEXT',
+      type: 'varchar',
     },
     {
       name: 'isPremium',
-      type: 'INTEGER',
+      type: 'boolean',
+      default: false,
     },
   ],
   name: 'STORE'

@@ -9,6 +9,8 @@ type TagMap = { [name in string]: number };
 
 export async function scrapeAndSave() {
   const stores = await Dao.instance(STORE_DEF).getAll<Store>();
+  console.log('Stores?');
+  console.log(JSON.stringify(stores, null, 4));
 
   const tags = await Dao.instance(TAG_DEF).getAll<Tag>();
   const tagMap: TagMap = {};
@@ -126,12 +128,14 @@ export async function scrape(wizId: number, browser: Browser): Promise<ScrapeRes
             textFrom(item.querySelector('.month')),
             textFrom(item.querySelector('.dayOfMonth'))),
           description: textFrom(item.querySelector('.e-description')),
-          isPosted: 0,
+          isPosted: false,
         }, tags
         ]);
       });
     return res;
   }, wizId);
   await delay(3000);
+  console.log('----- SCRAPED DATA -----');
+  console.log(JSON.stringify(data, null, 4));
   return data;
 }

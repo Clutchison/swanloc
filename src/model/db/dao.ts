@@ -1,9 +1,16 @@
-import { Client } from 'pg';
+import pg, { Client } from 'pg';
+import { Column, TableDef } from './table-def.js';
 
 export class Dao {
 
   private static instanceMap: { [key in string]: Dao } = {};
-  public static client: Client = new Client();
+  public static client: Client = new pg.Client({
+    user: process.env.DB_USER || '',
+    password: process.env.DB_PASSWORD || '',
+    host: process.env.DB_HOST || '',
+    port: +(process.env.DB_PORT || 0),
+    database: process.env.DB_NAME || '',
+  });
 
   public def: TableDef;
 
@@ -22,23 +29,47 @@ export class Dao {
     }
   }
 
+  public static async createType(vals: readonly string[], name: string) {
+    await Dao.query(
+      `CREATE TYPE "${name}" AS ENUM (${vals.map(v => "'" + v + "'").join(', ')})`,
+      '[CREATE TYPE]',
+    );
+    return;
+  }
+
+  public static async dropType(name: string) {
+    await Dao.query(
+      `DROP TYPE IF EXISTS "${name}"`,
+      '[DROP TYPE]',
+    );
+    return;
+  }
+
+  public async drop() {
+    await Dao.query(
+      `DROP TABLE IF EXISTS ${this.def.name}`,
+      '[DROP TABLE]',
+    )
+    return;
+  }
+
   public async insert<T extends {}>(obj: T): Promise<T> {
     const [keys, values] = [Object.keys(obj), Object.values(obj)];
+    console.log('INSERT VALUES');
+    console.log(JSON.stringify(values));
     const response = await Dao.query(
       `INSERT INTO ${this.def.name} (${keys.map(k => `"${k}"`).join(', ')}) ` +
       `VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING *`,
       '[INSERT]',
-      values,
+      ...values,
     )
     return response.rows[0] as T;
   }
 
   public async createTable(): Promise<void> {
-    await Dao.query(
-      `CREATE TABLE ${this.def.name} (` + this.def.columns.map(Dao.formatColumnDef).join(', ') +
-      (!!this.def.multiUnique ? `, CONSTRAINT ${this.def.name}_unique UNIQUE(${this.def.multiUnique.join(', ')}))` : ')'),
-      '[CREATE TABLE]',
-    )
+    const q = `CREATE TABLE ${this.def.name} (` + this.def.columns.map(Dao.formatColumnDef).join(', ') +
+      (!!this.def.multiUnique ? `, CONSTRAINT ${this.def.name}_unique UNIQUE(${this.def.multiUnique.map(k => `"${k}"`).join(', ')}))` : ')');
+    await Dao.query(q, '[CREATE TABLE]');
   }
 
   public async getBy<T extends {}>(t: T, ...cols: string[]): Promise<T[]> {
@@ -71,31 +102,19 @@ export class Dao {
     return vals.length === 0 ? s : Dao.populate(vals, s.replace(/\$\d\d?/i, vals.shift()));
   }
 
-  private static async query(q: string, logPrefix: string, ...values: any[]) {
+  public static async query(q: string, logPrefix: string, ...values: any[]) {
     console.log(logPrefix + ' ' + Dao.populate([...values], Object.assign(q, '')));
-    return await Dao.client.query(q, values);
+    return await Dao.client.query({
+      text: q,
+      values: values
+    });
   }
 
   private static formatColumnDef(c: Column) {
-    return c.name + ' ' + c.type +
+    const s = `"${c.name}"` + ' ' + c.type +
       (c.primary ? ' PRIMARY KEY' : '') +
-      (c.unique ? ' UNIQUE' : '');
+      (c.unique ? ' UNIQUE' : '') +
+      (c.default !== undefined ? ' DEFAULT ' + `'${c.default}'` : '');
+    return s;
   }
 }
-
-export type TableDef = {
-  columns: Columns;
-  name: string;
-  multiUnique?: string[];
-}
-
-export type Column = {
-  name: string;
-  type: ColumnType;
-  unique?: boolean;
-  primary?: boolean;
-}
-
-export type Columns = Column[]
-
-export type ColumnType = 'TEXT' | 'NUM' | 'INTEGER' | 'REAL' | '';
