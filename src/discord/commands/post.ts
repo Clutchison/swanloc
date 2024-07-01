@@ -4,6 +4,7 @@ import { Dao } from "../../model/db/dao.js";
 import { Event, EventDao } from "../../model/event.js";
 import { Store, STORE_DEF } from "../../model/store.js";
 import { swanCheck } from "./utility/util.js";
+import { MyDiscord } from "../discord.js";
 
 const fourHours = 14400000 as const;
 type StoreMap = { [key in number]: Store };
@@ -49,6 +50,38 @@ const post: MyCommand = {
     if (!errOccured) interaction.editReply('All done!');
   }
 };
+
+export async function postFromExpress(): Promise<void> {
+  const storeMap = await getStoreMap();
+  const eventsToPost = await EventDao.getEventsToPost();
+  console.log(`Found ${eventsToPost.length} to post!`)
+  let errOccured = false;
+  for (const event of eventsToPost) {
+    console.log('Creating event: ' + event.name);
+
+    const store = storeMap[event.storeWizId];
+    if (!store) {
+      console.error('No store found for event with id: ' + event.id);
+      continue;
+    }
+
+    const builtEvent = buildEvent(event, store);
+    const createdEvent = await MyDiscord.instance().client.guilds.cache.get('1016082585589399623')
+      ?.scheduledEvents
+      .create(builtEvent);
+    if (!!createdEvent) {
+      console.log(`Created event: ${JSON.stringify(createdEvent)}`);
+      await EventDao.post({ ...event, url: createdEvent.url })
+        .catch(err => {
+          console.error('Error updating posted status of event with id: ' + event.id + ' - ' + err);
+          errOccured = true;
+          return;
+        });
+    }
+    console.log('-----Built Event-----');
+    console.log(JSON.stringify(builtEvent, null, 4));
+  }
+}
 
 function buildEvent(event: Event, store: Store): GuildScheduledEventCreateOptions {
   return {

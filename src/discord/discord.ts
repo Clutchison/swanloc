@@ -29,6 +29,10 @@ export class MyDiscord {
     this.client.login(process.env.TOKEN);
   }
 
+  public pingSwan() {
+    this.client.users.cache.get(process.env.SWAN_ID || '')?.send('Daily scrape and post success.')
+  }
+
   public static instance(): MyDiscord {
     if (!MyDiscord._instance) MyDiscord._instance = new MyDiscord();
     return MyDiscord._instance;
