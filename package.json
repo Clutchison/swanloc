@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && ls -al /app",
+    "build": "tsc && ls -al /app/.cache",
     "once": "pnpm run build && pnpm run start:dev",
     "start:dev": "node --env-file=.env dist/index.js",
     "start": "node ./dist/index.js",
