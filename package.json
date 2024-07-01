@@ -5,13 +5,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && ls -al /app/.cache",
+    "build": "tsc",
     "once": "pnpm run build && pnpm run start:dev",
     "start:dev": "node --env-file=.env dist/index.js",
     "start": "node ./dist/index.js",
     "dev:tsc": "tsc --watch --preserveWatchOutput",
     "dev:node": "node --env-file=.env --enable-source-maps --watch dist/index.js",
-    "dev": "pnpm run \"/dev:/\""
+    "dev": "pnpm run \"/dev:/\"",
+    "heroku-postbuild": "tsc && node node_modules/puppeteer/install.js && mkdir -p ./.cache && mv /app/.cache/puppeteer ./.cache"
   },
   "author": "",
   "license": "ISC",
