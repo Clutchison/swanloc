@@ -16,7 +16,7 @@ export async function scrapeAndSave() {
   const tagMap: TagMap = {};
   tags.forEach(t => tagMap[t.name || ''] = t.id || 0);
 
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   await delay(1000);
 
   for (const store of stores) {
