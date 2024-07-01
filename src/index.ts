@@ -20,9 +20,19 @@ async function main() {
   });
 
   app.post('/daily', (_, res) => {
+    res.send('Starting Daily');
     doDaily()
-      .then(_ => res.send("All done"))
+      .then(_ => console.log("Daily Succeeded"))
       .catch(e => console.error(e))
+  });
+
+  app.get('/swan', (_, res) => {
+    try {
+      MyDiscord.instance().pingSwan();
+      res.send('Success');
+    } catch (e) {
+      res.send(e)
+    }
   });
 
   app.listen(port, () => {
