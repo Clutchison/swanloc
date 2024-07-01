@@ -12,7 +12,7 @@
     "dev:tsc": "tsc --watch --preserveWatchOutput",
     "dev:node": "node --env-file=.env --enable-source-maps --watch dist/index.js",
     "dev": "pnpm run \"/dev:/\"",
-    "heroku-postbuild": "tsc && node node_modules/puppeteer/install.mjs mkdir -p ./.cache && mv /app/.cache/puppeteer ./.cache"
+    "heroku-postbuild": "tsc"
   },
   "author": "",
   "license": "ISC",
