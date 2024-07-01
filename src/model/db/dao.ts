@@ -5,11 +5,10 @@ export class Dao {
 
   private static instanceMap: { [key in string]: Dao } = {};
   public static client: Client = new pg.Client({
-    user: process.env.DB_USER || '',
-    password: process.env.DB_PASSWORD || '',
-    host: process.env.DB_HOST || '',
-    port: +(process.env.DB_PORT || 0),
-    database: process.env.DB_NAME || '',
+    connectionString: process.env.DATABASE_URL || '',
+    ssl: {
+      rejectUnauthorized: false,
+    }
   });
 
   public def: TableDef;
