@@ -35,35 +35,24 @@ async function delay(time: number) {
 async function save(results: ScrapeResult[], tagMap: TagMap): Promise<void> {
   const eventDao = Dao.instance(EVENT_DEF);
   const eventTagDao = Dao.instance(EVENT_TAG_DEF);
-  return new Promise<void>((resolve, reject) => {
-    results.forEach(pair => {
-      const event = pair[0];
-      const tags = pair[1];
-      eventDao.getBy<Event>(event, 'name', 'date', 'storeWizId')
-        .then(existingEvent => {
-          console.log(`Event exists: ${JSON.stringify(existingEvent)}`);
-        }).catch(_ => {
-          console.log('Event does not exist. Saving...')
-          eventDao.insert<Event>(event)
-            .then(savedEvent => {
-              tags.forEach(t => {
-                eventTagDao.insert<EventTag>({
-                  tagId: tagMap[t.name] || 0,
-                  eventId: savedEvent.id || 0,
-                }).then(savedET => {
-                  console.log(`Saved ET: ${JSON.stringify(savedET)}`);
-                })
-              })
-            })
-            .catch(err => {
-              console.log(`Error saving object: ${JSON.stringify(event)}`);
-              console.log(err);
-              reject(err);
-            });
+  for (const pair of results) {
+    const event = pair[0];
+    const tags = pair[1];
+    const existingEvents = await eventDao.getBy<Event>(event, 'name', 'date', 'storeWizId');
+    if (existingEvents.length > 0) {
+      console.log(`Event exists: ${JSON.stringify(existingEvents[0])}`);
+    } else {
+      console.log('Event does not exist. Saving...')
+      const savedEvent = await eventDao.insert<Event>(event);
+      for (const t of tags) {
+        const et = await eventTagDao.insert<EventTag>({
+          tagId: tagMap[t.name] || 0,
+          eventId: savedEvent.id || 0,
         });
-    });
-    resolve();
-  });
+        console.log(`Saved ET: ${JSON.stringify(et)}`);
+      }
+    }
+  }
 }
 
 export async function scrape(wizId: number, browser: Browser): Promise<ScrapeResult[]> {

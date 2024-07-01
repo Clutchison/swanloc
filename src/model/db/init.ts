@@ -16,8 +16,8 @@ export async function initTables(): Promise<void> {
       Dao.instance(EVENT_TAG_DEF).createTable(),
     ]);
     await Promise.all([
-      // initTable<Store>(STORE_DEF, STORES),
-      initTable<Store>(STORE_DEF, TEST_STORES),
+      initTable<Store>(STORE_DEF, STORES),
+      // initTable<Store>(STORE_DEF, [STORES[0] as Store]), // This is for testing
       initTable<Tag>(TAG_DEF, TAGS),
     ]);
   } catch (err) {
@@ -26,13 +26,13 @@ export async function initTables(): Promise<void> {
 }
 
 export async function dropTables(): Promise<void> {
-  await Dao.dropType('postAllowance');
   await Promise.all([
     Dao.instance(STORE_DEF).drop(),
     Dao.instance(EVENT_DEF).drop(),
     Dao.instance(TAG_DEF).drop(),
     Dao.instance(EVENT_TAG_DEF).drop(),
-  ])
+  ]);
+  await Dao.dropType('postallowance');
 }
 
 async function initTable<T extends {}>(ref: TableDef, vals: T[]) {
@@ -43,16 +43,6 @@ async function initTable<T extends {}>(ref: TableDef, vals: T[]) {
       .catch(e => console.log(e));
   }
 }
-
-const TEST_STORES: Store[] = [
-  {
-    name: 'DCG Lomas',
-    wizId: 13642,
-    location: '11130 Lomas Blvd NE, Albuquerque, NM, 87112',
-    phone: '505-340-9668',
-    isPremium: true
-  },
-] as const;
 
 const STORES: Store[] = [
   {

@@ -59,7 +59,8 @@ export class Dao {
     console.log(JSON.stringify(values));
     const response = await Dao.query(
       `INSERT INTO ${this.def.name} (${keys.map(k => `"${k}"`).join(', ')}) ` +
-      `VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING *`,
+      `VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}) ` +
+      `ON CONFLICT DO NOTHING RETURNING *`,
       '[INSERT]',
       ...values,
     )
@@ -73,10 +74,16 @@ export class Dao {
   }
 
   public async getBy<T extends {}>(t: T, ...cols: string[]): Promise<T[]> {
+    const q = `SELECT * FROM ${this.def.name} where ${cols.map((col, i) => '"' + col + '"=$' + (i + 1)).join(' and ')}`;
+    const params = [...cols.map(c => t[c as keyof T])];
+    console.log('Q')
+    console.log(q);
+    console.log('Params');
+    console.log(params);
     const response = await Dao.query(
-      `SELECT * FROM ${this.def.name} where ${cols.map((col, i) => col + '=$' + i + 1).join(' and ')}`,
+      q,
       '[GET BY]',
-      cols.map(c => t[c as keyof T])
+      ...params
     );
     return response.rows;
   }
