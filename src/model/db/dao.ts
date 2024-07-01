@@ -13,6 +13,7 @@ export class Dao {
 
   public def: TableDef;
 
+
   private constructor(def: TableDef) {
     this.def = def;
   }
