@@ -29,8 +29,13 @@ export class MyDiscord {
     this.client.login(process.env.TOKEN);
   }
 
-  public pingSwan() {
-    this.client.users.cache.get(process.env.SWAN_ID || '')?.send('Daily scrape and post success.')
+  public async pingSwan() {
+    const swan = await this.client.users.fetch(process.env.SWAN_ID || '');
+    console.log('Found Swan - ' + swan?.username);
+    if (!!swan) {
+      const chan = await this.client.users.createDM(swan);
+      chan.send('Daily scrape and post success.');
+    }
   }
 
   public static instance(): MyDiscord {

@@ -43,7 +43,7 @@ async function main() {
 async function doDaily(): Promise<void> {
   await scrapeAndSave();
   await postFromExpress();
-  MyDiscord.instance().pingSwan();
+  await MyDiscord.instance().pingSwan();
 }
 
 main();
